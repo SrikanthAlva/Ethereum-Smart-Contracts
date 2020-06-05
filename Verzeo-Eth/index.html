@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Verzeo Instructors</title>
+
+  <link rel="stylesheet" type="text/css" href="main.css">
+
+  <script src="./node_modules/web3/dist/web3.min.js"></script>
+
+</head>
+
+<body>
+  <div class="container">
+
+    <h1>Verzeo Instructor</h1>
+
+    <h2 id="instructor"></h2>
+    <img id="loader" src="https://loading.io/spinners/double-ring/lg.double-ring-spinner.gif">
+
+    <label for="name" class="col-lg-2 control-label">Instructor First Name</label>
+    <input id="fname" type="text">
+
+    <label for="name" class="col-lg-2 control-label">Instructor Last Name</label>
+    <input id="lname" type="text">
+
+    <label for="name" class="col-lg-2 control-label">Instructor Address</label>
+    <input id="address" type="text">
+
+    <label for="name" class="col-lg-2 control-label">Instructor Age</label>
+    <input id="age" type="text">
+
+
+
+    <button id="button">Add Instructor</button>
+
+
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
+
+  <script>
+    // Our future code here..
+    if (typeof web3 !== 'undefined') {
+      web3 = new Web3(web3.currentProvider);
+    } else {
+      web3 = new Web3(new Web3.providers.HttpProvider("http://127.0.0.1:7545"));
+    }
+
+    web3.eth.defaultAccount = web3.eth.accounts[1];
+    console.log("Default Account", web3.eth.defaultAccount);
+
+    var VerzeoContract = web3.eth.contract([
+      {
+        "anonymous": false,
+        "inputs": [
+          {
+            "indexed": false,
+            "internalType": "bytes16",
+            "name": "fName",
+            "type": "bytes16"
+          },
+          {
+            "indexed": false,
+            "internalType": "bytes16",
+            "name": "lName",
+            "type": "bytes16"
+          },
+          {
+            "indexed": false,
+            "internalType": "uint256",
+            "name": "age",
+            "type": "uint256"
+          }
+        ],
+        "name": "instructorInfo",
+        "type": "event"
+      },
+      {
+        "constant": false,
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_address",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "_age",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bytes16",
+            "name": "_fName",
+            "type": "bytes16"
+          },
+          {
+            "internalType": "bytes16",
+            "name": "_lName",
+            "type": "bytes16"
+          }
+        ],
+        "name": "setInstructor",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [],
+        "name": "countInstructors",
+        "outputs": [
+          {
+            "internalType": "uint256",
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_address",
+            "type": "address"
+          }
+        ],
+        "name": "getInstructor",
+        "outputs": [
+          {
+            "internalType": "uint256",
+            "name": "",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bytes16",
+            "name": "",
+            "type": "bytes16"
+          },
+          {
+            "internalType": "bytes16",
+            "name": "",
+            "type": "bytes16"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [],
+        "name": "getInstructors",
+        "outputs": [
+          {
+            "internalType": "address[]",
+            "name": "",
+            "type": "address[]"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "name": "instructorAccts",
+        "outputs": [
+          {
+            "internalType": "address",
+            "name": "",
+            "type": "address"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      }
+    ])
+
+    var Verzeo = VerzeoContract.at('0x3db17F245C4dB7902558Fa32996489467a0c1742');
+    console.log(Verzeo);
+
+    var instructorEvent = Verzeo.instructorInfo();
+
+    instructorEvent.watch(function (error, result) {
+      if (!error) {
+        $("#loader").hide();
+        $("#instructor").html(hex2a(result.args.fName) + ' ' + hex2a(result.args.lName) + ' (' + result.args.age + ' years old )');
+        console.log("First Name of in byte16 format", result.args.fName);
+      } else {
+        $("#loader").hide();
+        console.log(error);
+      }
+    })
+
+    $("#button").click(function () {
+      Verzeo.setInstructor($("#address").val(), $("#age").val(), $("#fname").val(), $("#lname").val());
+      $("#loader").show();
+    });
+
+    function hex2a(hex) {
+      var str = '';
+      for (var i = 0; i < hex.length; i += 2) {
+        var v = parseInt(hex.substr(i, 2), 16);
+        if (v) str += String.fromCharCode(v);
+      }
+      return str;
+    }
+  </script>
+
+</body>
+
+</html>

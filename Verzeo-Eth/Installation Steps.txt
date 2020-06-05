@@ -1,0 +1,23 @@
+testrpc is ganache-cli
+
+Installing ganache-cli
+
+Open cmd prompt in admin mode
+
+npm install -g ganache-cli
+
+ganache-cli -a
+
+
+
+create a project folder
+open another cmd prompt in admin mode
+
+npm init
+Press ENTER for all questions.
+
+npm install web3 -> not working
+
+npm install -g --production windows-build-tools  -> might come in handy
+
+npm install --save web3@^0.20.0 -> works
