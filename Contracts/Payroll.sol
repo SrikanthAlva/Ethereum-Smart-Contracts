@@ -19,10 +19,12 @@ contract Payroll {
         _;
     }
     
-    function addEmpToPyrll(address _empAddr) external onlyOwner {
-        employees.push(payable(_empAddr));
-        empCount++;
-        emit EmployeeAddedToPayroll(empCount - 1, _empAddr);
+    function addFunds() payable external onlyOwner {}
+    
+    function addEmpsToPyrll(address[] memory _empAddrs) external onlyOwner {
+        for(uint i=0; i<_empAddrs.length; i++){
+            addEmpToPyrll(_empAddrs[i]);
+        }
     }
     
     function empsInPyrll() public view returns (address[] memory){
@@ -33,19 +35,21 @@ contract Payroll {
         return empList;
     }
     
-    function addFunds() payable external onlyOwner {}
-    
     function showFundsAvailable() external view returns(uint){
         return address(this).balance;
     }
     
-    
     function disburseFunds() external onlyOwner {
         uint empShare = address(this).balance/empCount;
-        
         for(uint i=0; i<empCount;i++){
             employees[i].transfer(empShare);
             emit EmployeeShareTransferred(employees[i], empShare);
         }
+    }
+    
+    function addEmpToPyrll(address _empAddr) private {
+        employees.push(payable(_empAddr));
+        empCount++;
+        emit EmployeeAddedToPayroll(empCount - 1, _empAddr);
     }
 }
