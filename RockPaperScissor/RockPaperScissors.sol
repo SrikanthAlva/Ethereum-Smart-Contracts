@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity 0.8.4;
 
 contract RockPaperScissors {
 
@@ -8,20 +8,22 @@ contract RockPaperScissors {
   event GameComplete(address winner, uint gameNumber);
   
   struct Game {
-    address[2] players;
-    uint totalBet;
-    uint8 movePlayer1;
-    uint8 movePlayer2;
-    uint8 playersJoined;
+      address[2] players;
+      uint totalBet;
+      uint8 movePlayer1;
+      uint8 movePlayer2;
+      uint8 playersJoined;
+      uint8 gameComplete;
   }
   
   mapping (uint => Game) GameNumToGame;
   uint gameCount = 0;
+  
 
   function createGame(address payable participant) payable  external{
     require(msg.value > 0);
 
-    GameNumToGame[++gameCount] = Game([msg.sender, participant], msg.value, 0, 0, 0);
+    GameNumToGame[++gameCount] = Game([msg.sender, participant], msg.value, 0, 0, 0, 0);
 
     emit GameCreated(msg.sender, gameCount, msg.value);
   }
@@ -36,13 +38,13 @@ contract RockPaperScissors {
         payable(msg.sender).transfer(msg.value - GameNumToGame[gameNumber].totalBet);
     }
     GameNumToGame[gameNumber].totalBet += GameNumToGame[gameNumber].totalBet;
-    GameNumToGame[gameNumber].playersJoined = 1;
 
-    emit GameStarted(GameNumToGame[gameNumber].players, gameNumber);    
+    emit GameStarted(GameNumToGame[gameNumber].players, gameNumber);
+    GameNumToGame[gameNumber].playersJoined = 1;
   }
   
 
-  function makeMove(uint gameNumber, uint8 moveNumber) external allowGame(gameNumber){
+  function makeMove(uint gameNumber, uint8 moveNumber) external allowGame(gameNumber, moveNumber){
     if(GameNumToGame[gameNumber].players[0]== msg.sender){
         GameNumToGame[gameNumber].movePlayer1 = moveNumber;
     } else {
@@ -53,15 +55,20 @@ contract RockPaperScissors {
         if(decision == 0){
             payable(GameNumToGame[gameNumber].players[0]).transfer(GameNumToGame[gameNumber].totalBet/2);
             payable(GameNumToGame[gameNumber].players[1]).transfer(GameNumToGame[gameNumber].totalBet/2);
+        
             emit GameComplete(address(0), gameNumber);
         } else if(decision == 1){
             payable(GameNumToGame[gameNumber].players[0]).transfer(GameNumToGame[gameNumber].totalBet);
+            
             emit GameComplete(GameNumToGame[gameNumber].players[0], gameNumber);
         } else {
-            payable(GameNumToGame[gameNumber].players[1]).transfer(GameNumToGame[gameNumber].totalBet);          
+            payable(GameNumToGame[gameNumber].players[1]).transfer(GameNumToGame[gameNumber].totalBet);
+            
             emit GameComplete(GameNumToGame[gameNumber].players[1], gameNumber);
         }
-    }        
+        GameNumToGame[gameNumber].gameComplete = 1;
+    }
+        
   }
   
   function Decide(uint _firstPlayerMove, uint _secondPlayerMove) private pure returns(uint res){
@@ -88,8 +95,10 @@ contract RockPaperScissors {
       }
   }
   
-  modifier allowGame(uint gameNumber) {
+  modifier allowGame(uint gameNumber, uint moveNumber) {
     require(GameNumToGame[gameNumber].playersJoined == 1);
+    require(GameNumToGame[gameNumber].gameComplete == 0);
+    require(moveNumber == 1 || moveNumber == 2 || moveNumber == 3);
     require(GameNumToGame[gameNumber].players[0]== msg.sender || GameNumToGame[gameNumber].players[1]== msg.sender);
     _;
   }
