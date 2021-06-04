@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.4;
 
-contract RockPaperScissors4 {
+contract RockPaperScissors {
 
   event GameCreated(address creator, uint gameNumber, uint bet);
   event GameStarted(address[2] players, uint gameNumber);
