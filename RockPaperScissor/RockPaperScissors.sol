@@ -1,105 +1,92 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.4;
 
-contract RockPaperScissors {
+contract RockPaperScissors4 {
 
   event GameCreated(address creator, uint gameNumber, uint bet);
   event GameStarted(address[2] players, uint gameNumber);
   event GameComplete(address winner, uint gameNumber);
   
+  enum GameStates { Created, Started, Completed }
+  enum Action {None, Rock, Paper, Scissor}
+  
   struct Game {
       address[2] players;
-      uint totalBet;
-      uint8 movePlayer1;
-      uint8 movePlayer2;
-      uint8 playersJoined;
-      uint8 gameComplete;
+      uint bet;
+      mapping(address => Action) moves;
+      GameStates gameState;
   }
   
-  mapping (uint => Game) GameNumToGame;
+  mapping (uint => Game) Games;
   uint gameCount = 0;
-  
+  address payable winner;
+
+  uint[4][4] rpsLookup = [  [0,0,0,0],
+                            [0,0,2,1], 
+                            [0,1,0,2],
+                            [0,2,1,0] ];
 
   function createGame(address payable participant) payable  external{
     require(msg.value > 0);
-
-    GameNumToGame[++gameCount] = Game([msg.sender, participant], msg.value, 0, 0, 0, 0);
+    Game storage game = Games[++gameCount];
+    game.players = [msg.sender, participant];
+    game.bet = msg.value;
+    game.moves[msg.sender] = Action.None;
+    game.moves[participant] = Action.None;
+    game.gameState = GameStates.Created;
 
     emit GameCreated(msg.sender, gameCount, msg.value);
   }
   
 
   function joinGame(uint gameNumber) payable external{
-    require(GameNumToGame[gameNumber].players[1] == msg.sender);
-    require(msg.value >= GameNumToGame[gameNumber].totalBet);
-    require(GameNumToGame[gameNumber].playersJoined == 0);
+    Game storage game = Games[gameNumber];
+    require(game.players[1] == msg.sender);
+    require(msg.value >= game.bet);
+    require(game.gameState == GameStates.Created);
     
-    if(msg.value > GameNumToGame[gameNumber].totalBet){
-        payable(msg.sender).transfer(msg.value - GameNumToGame[gameNumber].totalBet);
+    if(msg.value > game.bet){
+        payable(msg.sender).transfer(msg.value - game.bet);
     }
-    GameNumToGame[gameNumber].totalBet += GameNumToGame[gameNumber].totalBet;
 
-    emit GameStarted(GameNumToGame[gameNumber].players, gameNumber);
-    GameNumToGame[gameNumber].playersJoined = 1;
+    emit GameStarted(game.players, gameNumber);
+    game.gameState = GameStates.Started;
   }
   
 
   function makeMove(uint gameNumber, uint8 moveNumber) external allowGame(gameNumber, moveNumber){
-    if(GameNumToGame[gameNumber].players[0]== msg.sender){
-        GameNumToGame[gameNumber].movePlayer1 = moveNumber;
+    
+    Game storage game = Games[gameNumber];
+    address player1 = game.players[0];
+    address player2 = game.players[1];
+    if(player1== msg.sender){
+        game.moves[player1] = Action(moveNumber);
     } else {
-        GameNumToGame[gameNumber].movePlayer2 = moveNumber;
+        game.moves[player2] = Action(moveNumber);
     }
-    if(GameNumToGame[gameNumber].movePlayer1 > 0 && GameNumToGame[gameNumber].movePlayer2 > 0){
-        uint decision = Decide(GameNumToGame[gameNumber].movePlayer1, GameNumToGame[gameNumber].movePlayer2);
+    if(game.moves[player1] != Action.None && game.moves[player2] != Action.None){
+        uint decision = rpsLookup[uint(game.moves[player1])][uint(game.moves[player2])]; 
         if(decision == 0){
-            payable(GameNumToGame[gameNumber].players[0]).transfer(GameNumToGame[gameNumber].totalBet/2);
-            payable(GameNumToGame[gameNumber].players[1]).transfer(GameNumToGame[gameNumber].totalBet/2);
+            payable(player1).transfer(game.bet);
+            payable(player2).transfer(game.bet);
         
             emit GameComplete(address(0), gameNumber);
-        } else if(decision == 1){
-            payable(GameNumToGame[gameNumber].players[0]).transfer(GameNumToGame[gameNumber].totalBet);
-            
-            emit GameComplete(GameNumToGame[gameNumber].players[0], gameNumber);
-        } else {
-            payable(GameNumToGame[gameNumber].players[1]).transfer(GameNumToGame[gameNumber].totalBet);
-            
-            emit GameComplete(GameNumToGame[gameNumber].players[1], gameNumber);
+        } 
+        else {
+           winner = payable(game.players[decision - 1]);
+           winner.transfer(game.bet*2);
+           emit GameComplete(winner, gameNumber);
         }
-        GameNumToGame[gameNumber].gameComplete = 1;
+        game.gameState = GameStates.Completed;
     }
         
-  }
-  
-  function Decide(uint _firstPlayerMove, uint _secondPlayerMove) private pure returns(uint res){
-      if(_firstPlayerMove == _secondPlayerMove){
-          return 0;
-      }
-      if(_firstPlayerMove == 1){
-          if(_secondPlayerMove == 2){
-              return 2;
-          }
-          return 1;
-      }
-      else if(_firstPlayerMove == 2){
-          if(_secondPlayerMove == 3){
-              return 2;
-          }
-          return 1;
-      }
-      else if(_firstPlayerMove == 3){
-          if(_secondPlayerMove == 1){
-              return 2;
-          }
-          return 1;
-      }
   }
   
   modifier allowGame(uint gameNumber, uint moveNumber) {
-    require(GameNumToGame[gameNumber].playersJoined == 1);
-    require(GameNumToGame[gameNumber].gameComplete == 0);
+    Game storage game = Games[gameNumber];
+    require(game.gameState == GameStates.Started);
     require(moveNumber == 1 || moveNumber == 2 || moveNumber == 3);
-    require(GameNumToGame[gameNumber].players[0]== msg.sender || GameNumToGame[gameNumber].players[1]== msg.sender);
+    require(game.players[0]== msg.sender || game.players[1]== msg.sender);
     _;
   }
   
