@@ -16,7 +16,7 @@ contract OverflowUnderflow {
         return over + 1; //returns 0 
     }
 
-    // Underflow Tests
+    // Underflow Test
 
     function underflowTest1() public view returns(uint8) {
         return under; //returns 0
